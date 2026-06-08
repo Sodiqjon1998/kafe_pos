@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../core/api/api_client.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/models/menu_model.dart';
 import '../../core/models/order_model.dart';
@@ -331,22 +332,28 @@ class _OrderScreenState extends State<OrderScreen> {
               // ── Chap: buyurtma ────────────────────────────────────────
               SizedBox(
                 width: MediaQuery.of(context).size.width * 0.40,
-                child: _OrderPanel(
-                  order: order,
-                  onRemove: _removeItem,
-                  onChangeQty: _changeQty,
+                child: PrimaryScrollController(
+                  controller: ScrollController(),
+                  child: _OrderPanel(
+                    order: order,
+                    onRemove: _removeItem,
+                    onChangeQty: _changeQty,
+                  ),
                 ),
               ),
               Container(width: 1, color: AppColors.border),
 
               // ── O'ng: menyu ───────────────────────────────────────────
               Expanded(
-                child: _MenuPanel(
-                  categories: categories,
-                  selectedIndex: _selectedCatIndex,
-                  selectedCategory: selectedCat,
-                  onCatSelect: (i) => setState(() => _selectedCatIndex = i),
-                  onProductTap: _addToOrder,
+                child: PrimaryScrollController(
+                  controller: ScrollController(),
+                  child: _MenuPanel(
+                    categories: categories,
+                    selectedIndex: _selectedCatIndex,
+                    selectedCategory: selectedCat,
+                    onCatSelect: (i) => setState(() => _selectedCatIndex = i),
+                    onProductTap: _addToOrder,
+                  ),
                 ),
               ),
             ],
@@ -682,23 +689,29 @@ class _MenuPanel extends StatelessWidget {
                               color: AppColors.muted, fontSize: 12)),
                     );
                   }
-                  return GridView.builder(
-                    padding: const EdgeInsets.all(10),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                      childAspectRatio: 0.95,
+                  return ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(context).copyWith(
+                      physics: const BouncingScrollPhysics(),
                     ),
-                    itemCount: cat.products.length,
-                    itemBuilder: (_, i) {
-                      final p = cat.products[i];
-                      return _ProductCard(
-                        product: p,
-                        onTap: p.isAvailable ? () => onProductTap(p) : null,
-                      );
-                    },
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(10),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                        childAspectRatio: 0.95,
+                      ),
+                      itemCount: cat.products.length,
+                      itemBuilder: (_, i) {
+                        final p = cat.products[i];
+                        return _ProductCard(
+                          product: p,
+                          onTap: p.isAvailable ? () => onProductTap(p) : null,
+                        );
+                      },
+                    ),
                   );
                 }),
         ),
@@ -741,22 +754,16 @@ class _ProductCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon + mavjudlik
+              // Rasm yoki icon + mavjudlik
               Expanded(
                 child: Stack(
                   children: [
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: unavailable
-                              ? AppColors.muted.withOpacity(0.08)
-                              : AppColors.primary.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(iconData,
-                            color: unavailable ? AppColors.muted : AppColors.primary,
-                            size: unavailable ? 24 : 28),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: _ProductImage(
+                        imagePath: product.image,
+                        fallbackIcon: iconData,
+                        unavailable: unavailable,
                       ),
                     ),
                     if (unavailable)
@@ -921,6 +928,72 @@ class _BottomPanel extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Mahsulot rasmi ────────────────────────────────────────────────────────────
+
+class _ProductImage extends StatelessWidget {
+  final String? imagePath;
+  final IconData fallbackIcon;
+  final bool unavailable;
+
+  const _ProductImage({
+    required this.imagePath,
+    required this.fallbackIcon,
+    required this.unavailable,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final url = ApiClient().imageUrl(imagePath);
+
+    if (url.isNotEmpty) {
+      return SizedBox.expand(
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          color: unavailable ? Colors.white.withOpacity(0.4) : null,
+          colorBlendMode: unavailable ? BlendMode.modulate : null,
+          errorBuilder: (_, __, ___) => _fallback(),
+          loadingBuilder: (_, child, progress) {
+            if (progress == null) return child;
+            return Container(
+              color: unavailable
+                  ? AppColors.muted.withOpacity(0.08)
+                  : AppColors.primary.withOpacity(0.07),
+              child: const Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    return _fallback();
+  }
+
+  Widget _fallback() {
+    return Container(
+      color: unavailable
+          ? AppColors.muted.withOpacity(0.08)
+          : AppColors.primary.withOpacity(0.1),
+      child: Center(
+        child: Icon(
+          fallbackIcon,
+          color: unavailable ? AppColors.muted : AppColors.primary,
+          size: unavailable ? 24 : 28,
+        ),
       ),
     );
   }

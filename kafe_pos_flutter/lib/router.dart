@@ -3,8 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'core/models/table_model.dart';
 import 'features/admin/admin_home.dart';
 import 'features/auth/login_screen.dart';
+import 'features/cashier/cashier_screen.dart';
+import 'features/kitchen/kitchen_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/splash/splash_screen.dart';
+import 'features/waiter/history_screen.dart';
 import 'features/waiter/order_screen.dart';
 import 'features/waiter/waiter_home.dart';
 
@@ -58,6 +61,24 @@ final router = GoRouter(
     GoRoute(
       path: '/admin',
       builder: (_, __) => const AdminHome(),
+    ),
+
+    // Waiter: buyurtma tarixi
+    GoRoute(
+      path: '/waiter/history',
+      builder: (_, __) => const HistoryScreen(),
+    ),
+
+    // Kassir
+    GoRoute(
+      path: '/cashier',
+      builder: (_, __) => const CashierScreen(),
+    ),
+
+    // Kitchen — login talab qilinmaydi (oshpaz APK uchun)
+    GoRoute(
+      path: '/kitchen',
+      builder: (_, __) => const KitchenScreen(),
     ),
   ],
 

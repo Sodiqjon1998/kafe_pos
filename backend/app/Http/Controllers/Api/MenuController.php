@@ -160,8 +160,13 @@ class MenuController extends Controller
 
     private function saveImage($file): string
     {
+        $dir = public_path('uploads/products');
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
         $name = Str::uuid() . '.' . $file->getClientOriginalExtension();
-        $file->move(public_path('uploads/products'), $name);
-        return '/uploads/products/' . $name;
+        $file->move($dir, $name);
+        // To'liq URL qaytaramiz — frontend qaysi domendan bo'lmasin ishlaydi
+        return url('/uploads/products/' . $name);
     }
 }

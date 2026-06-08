@@ -34,7 +34,10 @@ class AppUser {
       };
 
   bool get isManagerOrAdmin => role == 'admin' || role == 'manager';
-  bool get isAdmin => role == 'admin';
+  bool get isAdmin    => role == 'admin';
+  bool get isCashier  => role == 'cashier';
+  bool get isKitchen  => role == 'kitchen';
+  bool get isWaiter   => role == 'waiter';
 
   String get roleLabel {
     const labels = {

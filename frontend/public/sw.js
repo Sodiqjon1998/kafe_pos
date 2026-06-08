@@ -40,6 +40,9 @@ self.addEventListener('fetch', (e) => {
   const { request } = e
   const url = new URL(request.url)
 
+  // Faqat http/https — chrome-extension, data, blob va boshqa sxemalar o'tkazib yuboriladi
+  if (!url.protocol.startsWith('http')) return
+
   // POST/PUT/PATCH/DELETE — to'g'ridan network ga
   if (request.method !== 'GET') return
 

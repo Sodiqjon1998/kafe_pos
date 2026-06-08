@@ -24,7 +24,6 @@ class _WaiterHomeState extends State<WaiterHome>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
-    // 30 soniyada bir stol holatlarini yangilash (POS real-vaqt)
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) context.read<TablesProvider>().fetchHalls();
     });
@@ -62,167 +61,316 @@ class _WaiterHomeState extends State<WaiterHome>
     final tbls  = context.watch<TablesProvider>();
     final halls = tbls.halls;
 
-    final freeCount     = halls.expand((h) => h.tables).where((t) => t.status == 'free').length;
-    final occupiedCount = halls.expand((h) => h.tables).where((t) => t.status == 'occupied').length;
-    final totalCount    = halls.expand((h) => h.tables).length;
+    final allTables   = halls.expand((h) => h.tables).toList();
+    final freeCount   = allTables.where((t) => t.status == 'free').length;
+    final occupied    = allTables.where((t) => t.status == 'occupied').length;
+    final bill        = allTables.where((t) => t.status == 'bill_requested').length;
+    final total       = allTables.length;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: NestedScrollView(
-        headerSliverBuilder: (_, __) => [
-          SliverAppBar(
-            backgroundColor: AppColors.surface,
-            elevation: 0,
-            pinned: true,
-            expandedHeight: 120,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 48, 16, 0),
-                child: Row(
+      body: Column(
+        children: [
+          // ── Professional AppBar ──────────────────────────────────────────
+          _buildAppBar(auth, freeCount, occupied, bill, total, halls),
+
+          // ── Tab Bar (zallar) ─────────────────────────────────────────────
+          if (halls.isNotEmpty && _tabCtrl != null)
+            _buildTabBar(halls),
+
+          // ── Asosiy kontent ───────────────────────────────────────────────
+          Expanded(
+            child: tbls.loading && halls.isEmpty
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary))
+                : tbls.error != null
+                    ? _buildError(tbls.error!)
+                    : halls.isEmpty
+                        ? _buildEmpty()
+                        : _tabCtrl != null
+                            ? TabBarView(
+                                controller: _tabCtrl,
+                                children: halls
+                                    .map((h) => _HallGrid(
+                                          hall: h,
+                                          onTableTap: _onTableTap,
+                                        ))
+                                    .toList(),
+                              )
+                            : const SizedBox(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppBar(AuthProvider auth, int free, int occ, int bill,
+      int total, List halls) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x18000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+          child: Row(
+            children: [
+              // ── Logo ────────────────────────────────────────────────────
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary.withOpacity(0.9),
+                      AppColors.primary.withOpacity(0.6),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.local_cafe,
+                    color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 10),
+
+              // ── Title + role ─────────────────────────────────────────────
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Avatar
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: AppColors.primary.withOpacity(0.4)),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.local_cafe, color: AppColors.primary, size: 20),
+                    const Text(
+                      'Kafe POS',
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Kafe POS',
-                              style: TextStyle(
-                                  color: AppColors.text,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800)),
-                          Text(auth.user?.name ?? '',
-                              style: const TextStyle(
-                                  color: AppColors.muted, fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    // Stats chips
-                    _StatChip(
-                        label: '$freeCount bo\'sh',
-                        color: AppColors.success),
-                    const SizedBox(width: 6),
-                    _StatChip(
-                        label: '$occupiedCount band',
-                        color: AppColors.warning),
-                    const SizedBox(width: 8),
-                    // Actions
-                    if (auth.isManager)
-                      IconButton(
-                        icon: const Icon(Icons.admin_panel_settings,
-                            color: AppColors.primary),
-                        onPressed: () => context.go('/admin'),
-                        tooltip: 'Admin panel',
-                      ),
-                    IconButton(
-                      icon: const Icon(Icons.logout, color: AppColors.muted),
-                      onPressed: () async {
-                        await context.read<AuthProvider>().logout();
-                        if (context.mounted) context.go('/login');
-                      },
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: AppColors.success,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${auth.user?.name ?? ''} • ${auth.user?.roleLabel ?? ''}',
+                          style: const TextStyle(
+                              color: AppColors.muted, fontSize: 11),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+
+              // ── Stats ────────────────────────────────────────────────────
+              _buildStatBadge('$free', "Bo'sh", AppColors.success),
+              const SizedBox(width: 5),
+              _buildStatBadge('$occ', 'Band', AppColors.warning),
+              if (bill > 0) ...[
+                const SizedBox(width: 5),
+                _buildStatBadge('$bill', 'Hisob', AppColors.info),
+              ],
+              const SizedBox(width: 4),
+
+              // ── Actions ──────────────────────────────────────────────────
+              if (auth.isManager)
+                _buildIconBtn(
+                  Icons.admin_panel_settings_outlined,
+                  AppColors.primary,
+                  () => context.go('/admin'),
+                  tooltip: 'Admin',
+                ),
+              _buildIconBtn(
+                Icons.history_rounded,
+                AppColors.info,
+                () => context.push('/waiter/history'),
+                tooltip: 'Tarix',
+              ),
+              _buildIconBtn(
+                Icons.refresh_rounded,
+                AppColors.muted,
+                _load,
+                tooltip: 'Yangilash',
+              ),
+              _buildIconBtn(
+                Icons.logout_rounded,
+                AppColors.danger.withOpacity(0.8),
+                () async {
+                  await context.read<AuthProvider>().logout();
+                  if (context.mounted) context.go('/login');
+                },
+                tooltip: 'Chiqish',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatBadge(String count, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.25), width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            count,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              height: 1,
             ),
-            bottom: halls.isNotEmpty && _tabCtrl != null
-                ? PreferredSize(
-                    preferredSize: const Size.fromHeight(48),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        border: Border(
-                            top: BorderSide(color: AppColors.border)),
-                      ),
-                      child: TabBar(
-                        controller: _tabCtrl,
-                        isScrollable: true,
-                        indicatorColor: AppColors.primary,
-                        indicatorSize: TabBarIndicatorSize.label,
-                        indicatorWeight: 3,
-                        labelColor: AppColors.primary,
-                        unselectedLabelColor: AppColors.muted,
-                        labelStyle: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 14),
-                        unselectedLabelStyle:
-                            const TextStyle(fontWeight: FontWeight.w500),
-                        tabs: halls.map((h) => Tab(text: h.name)).toList(),
-                      ),
-                    ),
-                  )
-                : null,
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: color.withOpacity(0.8),
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
-        body: tbls.loading && halls.isEmpty
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary))
-            : tbls.error != null
-                ? _buildError(tbls.error!)
-                : halls.isEmpty
-                    ? _buildEmpty()
-                    : _tabCtrl != null
-                        ? TabBarView(
-                            controller: _tabCtrl,
-                            children: halls.map((h) => _HallGrid(
-                                  hall: h,
-                                  onTableTap: _onTableTap,
-                                )).toList(),
-                          )
-                        : const SizedBox(),
       ),
-      // Yangilash FAB
-      floatingActionButton: FloatingActionButton.small(
-        onPressed: _load,
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.primary,
-        elevation: 2,
-        child: const Icon(Icons.refresh),
+    );
+  }
+
+  Widget _buildIconBtn(IconData icon, Color color, VoidCallback onTap,
+      {String? tooltip}) {
+    return Tooltip(
+      message: tooltip ?? '',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 18),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabBar(List<Hall> halls) {
+    return Container(
+      height: 44,
+      color: AppColors.surface,
+      child: TabBar(
+        controller: _tabCtrl,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        indicatorColor: AppColors.primary,
+        indicatorSize: TabBarIndicatorSize.label,
+        indicatorWeight: 3,
+        labelColor: AppColors.primary,
+        unselectedLabelColor: AppColors.muted,
+        labelStyle: const TextStyle(
+            fontWeight: FontWeight.w700, fontSize: 13),
+        unselectedLabelStyle:
+            const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        tabs: halls.map((h) {
+          final count = h.tables.length;
+          final occ = h.tables.where((t) => t.status == 'occupied').length;
+          return Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(h.name),
+                if (occ > 0) ...[
+                  const SizedBox(width: 5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$occ/$count',
+                      style: const TextStyle(
+                          fontSize: 9,
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
   Widget _buildError(String msg) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.danger.withOpacity(0.1),
-                shape: BoxShape.circle,
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.wifi_off,
+                    color: AppColors.danger, size: 40),
               ),
-              child: const Icon(Icons.wifi_off,
-                  color: AppColors.danger, size: 40),
-            ),
-            const SizedBox(height: 16),
-            Text(msg,
-                style:
-                    const TextStyle(color: AppColors.muted, fontSize: 14),
-                textAlign: TextAlign.center),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _load,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Qayta urinish'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.white,
+              const SizedBox(height: 16),
+              Text(msg,
+                  style:
+                      const TextStyle(color: AppColors.muted, fontSize: 13),
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _load,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Qayta urinish'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.white,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
 
@@ -232,11 +380,12 @@ class _WaiterHomeState extends State<WaiterHome>
           children: [
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.surface,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.table_restaurant, color: AppColors.muted, size: 48),
+              child: const Icon(Icons.table_restaurant,
+                  color: AppColors.muted, size: 48),
             ),
             const SizedBox(height: 16),
             const Text('Zallar topilmadi',
@@ -250,41 +399,6 @@ class _WaiterHomeState extends State<WaiterHome>
           ],
         ),
       );
-}
-
-// ── Stat chip ───────────────────────────────────────────────────────────────
-
-class _StatChip extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _StatChip({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 4),
-          Text(label,
-              style: TextStyle(
-                  color: color, fontSize: 10, fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
-  }
 }
 
 // ── Zal ichidagi stol gridi ─────────────────────────────────────────────────
@@ -309,12 +423,12 @@ class _HallGrid extends StatelessWidget {
       backgroundColor: AppColors.surface,
       onRefresh: () => context.read<TablesProvider>().fetchHalls(),
       child: GridView.builder(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 0.88,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 0.9,
         ),
         itemCount: tables.length,
         itemBuilder: (_, i) => _TableCard(
@@ -336,122 +450,123 @@ class _TableCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = table.statusColor;
-    final order = table.activeOrder;
-    final isOccupied = table.status == 'occupied';
+    final color    = table.statusColor;
+    final order    = table.activeOrder;
+    final isOcc    = table.status == 'occupied';
+    final isBill   = table.status == 'bill_requested';
+    final isActive = isOcc || isBill;
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: isOccupied
+            borderRadius: BorderRadius.circular(14),
+            gradient: isActive
                 ? LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      color.withOpacity(0.18),
+                      color.withOpacity(0.15),
                       AppColors.card,
                     ],
                   )
                 : null,
-            color: isOccupied ? null : AppColors.card,
+            color: isActive ? null : AppColors.card,
             border: Border.all(
-              color: isOccupied
-                  ? color.withOpacity(0.6)
-                  : AppColors.border,
-              width: isOccupied ? 1.5 : 1,
+              color: isActive ? color.withOpacity(0.5) : AppColors.border,
+              width: isActive ? 1.5 : 1,
             ),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: color.withOpacity(0.12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : null,
           ),
-          padding: const EdgeInsets.all(11),
+          padding: const EdgeInsets.all(10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Ustki qator: stol nomi + status
+              // ── Status indicator bar ────────────────────────────────────
+              Container(
+                height: 3,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // ── Stol nomi ───────────────────────────────────────────────
+              Text(
+                table.name,
+                style: TextStyle(
+                  color: isActive ? AppColors.text : AppColors.muted,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+
+              // ── Sig'im ──────────────────────────────────────────────────
               Row(
                 children: [
-                  // Stol ikonka
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Icon(Icons.table_bar, color: color, size: 14),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      table.name,
+                  Icon(Icons.people_outline,
+                      color: AppColors.muted.withOpacity(0.6), size: 10),
+                  const SizedBox(width: 2),
+                  Text('${table.capacity}',
                       style: TextStyle(
-                          color: isOccupied ? AppColors.text : AppColors.text,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+                          color: AppColors.muted.withOpacity(0.6),
+                          fontSize: 10)),
                 ],
               ),
 
               const Spacer(),
 
-              // Sig'im
-              Row(
-                children: [
-                  const Icon(Icons.people_outline,
-                      color: AppColors.muted, size: 11),
-                  const SizedBox(width: 3),
-                  Text('${table.capacity} kishi',
-                      style: const TextStyle(
-                          color: AppColors.muted, fontSize: 10)),
-                ],
-              ),
-
-              const SizedBox(height: 6),
-
-              // Buyurtma yoki holat
+              // ── Buyurtma ma'lumotlari yoki status ───────────────────────
               if (order != null) ...[
-                // Buyurtma raqami
                 Text(
                   order.orderNumber,
                   style: TextStyle(
-                      color: color,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700),
+                    color: color,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
                 ),
                 const SizedBox(height: 2),
-                // Summa
                 Text(
                   order.totalFormatted,
                   style: const TextStyle(
-                      color: AppColors.text,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800),
+                    color: AppColors.text,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ] else ...[
-                // Bo'sh holat badge
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 7, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
+                    color: color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
-                    border:
-                        Border.all(color: color.withOpacity(0.3)),
                   ),
                   child: Text(
                     table.statusLabel,
                     style: TextStyle(
-                        color: color,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700),
+                      color: color,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -466,6 +581,7 @@ class _TableCard extends StatelessWidget {
 extension on ActiveOrder {
   String get totalFormatted {
     final n = total.toInt();
+    if (n == 0) return '';
     final s = n.toString().replaceAllMapped(
       RegExp(r'(\d)(?=(\d{3})+$)'),
       (m) => '${m[1]} ',

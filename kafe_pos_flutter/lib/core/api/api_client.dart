@@ -102,6 +102,14 @@ class ApiClient {
 
   Future<Response> delete(String path) => _dio.delete(path);
 
+  /// Rasm URL ni to'liq qilish: '/uploads/...' → 'http://192.168.x.x/uploads/...'
+  /// Agar allaqachon http bilan boshlansa, o'zgartirmaydi.
+  String imageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    return '$_baseUrl$path';
+  }
+
   /// Xato xabarini chiqarish uchun yordamchi
   static String errorMessage(dynamic e) {
     if (e is DioException) {
