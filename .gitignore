@@ -1,0 +1,14 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Backend
+backend/.env
+backend/vendor/
+backend/storage/logs/*.log
+backend/public/storage
+
+# Frontend
+frontend/.env
+frontend/node_modules/
+frontend/dist/

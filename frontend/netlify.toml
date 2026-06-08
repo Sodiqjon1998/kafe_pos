@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# React Router — barcha yo'llarni index.html ga yo'naltirish
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
