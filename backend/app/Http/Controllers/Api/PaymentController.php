@@ -48,11 +48,8 @@ class PaymentController extends Controller
     // POST /api/payments — to'lov qabul qilish
     public function store(Request $request)
     {
-        // Ochiq smena tekshiruvi
-        $openShift = DB::connection('mysql')->table('shifts')->whereNull('closed_at')->first();
-        if (!$openShift) {
-            return response()->json(['message' => 'Ochiq smena yo\'q. Avval smenani oching!'], 422);
-        }
+        // Ochiq smena (majburiy emas — LAN POS da smena bo'lmasligi mumkin)
+        $openShift = DB::connection('mysql')->table('shifts')->whereNull('closed_at')->orderByDesc('id')->first();
 
         $request->validate([
             'order_id'      => 'required|exists:orders,id',
@@ -67,7 +64,7 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Buyurtma allaqachon to\'langan'], 422);
         }
 
-        $payment = DB::transaction(function () use ($request, $order, $openShift) {
+        $payment = DB::transaction(function () use ($request, $order, $openShift) { // $openShift nullable
             // Asosiy summa
             $subtotal = (float) ($order->total ?: $order->subtotal);
             if ($subtotal <= 0) {
@@ -94,7 +91,7 @@ class PaymentController extends Controller
             $order->update([
                 'status'     => 'paid',
                 'cashier_id' => auth()->id(),
-                'shift_id'   => $openShift->id,
+                'shift_id'   => $openShift?->id,
                 'discount'   => $discount,
                 'total'      => $amount,
                 'closed_at'  => now(),
