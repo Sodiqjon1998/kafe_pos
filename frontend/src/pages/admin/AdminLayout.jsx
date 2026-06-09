@@ -1658,6 +1658,9 @@ function StockPage() {
   const [movements, setMovements]   = useState([])
   // Tannarxlar: { productId: { cost, has_recipe } }
   const [costs, setCosts]           = useState({})
+  // Inline narx tahrirlash: { productId: string }
+  const [editingPrice, setEditingPrice] = useState({})
+  const [savingPrice, setSavingPrice]   = useState({})
 
   const UNITS = ['kg', 'gr', 'litr', 'ml', 'dona', 'paket', 'quti']
 
@@ -1735,6 +1738,18 @@ function StockPage() {
   }
 
   const fld = (k, v) => setForm(f => ({...f, [k]: v}))
+
+  async function savePrice(p) {
+    const newPrice = parseFloat(editingPrice[p.id])
+    if (!newPrice || newPrice <= 0) return
+    setSavingPrice(s => ({ ...s, [p.id]: true }))
+    try {
+      await menuApi.updateProduct(p.id, { price: newPrice })
+      setProducts(ps => ps.map(x => x.id === p.id ? { ...x, price: newPrice } : x))
+      setEditingPrice(s => { const n = {...s}; delete n[p.id]; return n })
+    } catch(e) {}
+    setSavingPrice(s => ({ ...s, [p.id]: false }))
+  }
 
   const lowItems = ingredients.filter(i => i.low_stock)
 
@@ -1876,6 +1891,30 @@ function StockPage() {
                     <div style={{ color:C.muted, fontSize:12, marginBottom:12, fontStyle:'italic' }}>
                       Retsept kiritilmagan
                     </div>
+                  )}
+
+                  {/* Narx tahrirlash */}
+                  {editingPrice[p.id] !== undefined ? (
+                    <div style={{ display:'flex', gap:6, marginBottom:8 }}>
+                      <input
+                        type="number"
+                        value={editingPrice[p.id]}
+                        onChange={e => setEditingPrice(s => ({ ...s, [p.id]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter') savePrice(p); if (e.key === 'Escape') setEditingPrice(s => { const n={...s}; delete n[p.id]; return n }) }}
+                        autoFocus
+                        style={{ flex:1, background:C.card, border:`1px solid ${C.primary}`, borderRadius:8, padding:'7px 10px', color:C.text, fontSize:13, outline:'none' }}
+                      />
+                      <button onClick={() => savePrice(p)} disabled={savingPrice[p.id]} style={{ background:C.primary, border:'none', borderRadius:8, padding:'7px 12px', color:'#fff', fontWeight:700, cursor:'pointer', fontSize:12 }}>
+                        {savingPrice[p.id] ? '...' : '✓'}
+                      </button>
+                      <button onClick={() => setEditingPrice(s => { const n={...s}; delete n[p.id]; return n })} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:8, padding:'7px 10px', color:C.muted, cursor:'pointer', fontSize:12 }}>✕</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setEditingPrice(s => ({ ...s, [p.id]: String(sellPrice) }))} style={{
+                      width:'100%', background:'transparent', border:`1px solid ${C.border}`,
+                      borderRadius:8, padding:'7px 0', color:C.muted, fontWeight:600,
+                      fontSize:12, cursor:'pointer', marginBottom:6,
+                    }}>✏️ Narx o'zgartirish</button>
                   )}
 
                   <button onClick={()=>openRecipe(p)} style={{
