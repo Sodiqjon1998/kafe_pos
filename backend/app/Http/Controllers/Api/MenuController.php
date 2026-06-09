@@ -110,11 +110,7 @@ class MenuController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            // Eski rasmni o'chirish
-            if ($product->image) {
-                $old = public_path($product->image);
-                if (file_exists($old)) @unlink($old);
-            }
+            $this->deleteCloudinaryImage($product->image);
             $data['image'] = $this->saveImage($request->file('image'));
         }
 
@@ -127,11 +123,7 @@ class MenuController extends Controller
     {
         $request->validate(['image' => 'required|image|max:3072']);
 
-        if ($product->image) {
-            $old = public_path($product->image);
-            if (file_exists($old)) @unlink($old);
-        }
-
+        $this->deleteCloudinaryImage($product->image);
         $product->update(['image' => $this->saveImage($request->file('image'))]);
         return response()->json($product->fresh());
     }
@@ -140,8 +132,7 @@ class MenuController extends Controller
     public function deleteImage(Product $product)
     {
         if ($product->image) {
-            $path = public_path($product->image);
-            if (file_exists($path)) @unlink($path);
+            $this->deleteCloudinaryImage($product->image);
             $product->update(['image' => null]);
         }
         return response()->json($product->fresh());
@@ -150,23 +141,27 @@ class MenuController extends Controller
     // DELETE /api/products/{id}
     public function destroyProduct(Product $product)
     {
-        if ($product->image) {
-            $path = public_path($product->image);
-            if (file_exists($path)) @unlink($path);
-        }
+        $this->deleteCloudinaryImage($product->image);
         $product->delete();
         return response()->json(null, 204);
     }
 
+    // ── Rasmni base64 formatida saqlash (bazaga) ────────────────────────────
     private function saveImage($file): string
     {
-        $dir = public_path('uploads/products');
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+        $imageData = file_get_contents($file->getRealPath());
+        $mime      = $file->getMimeType();
+        return 'data:' . $mime . ';base64,' . base64_encode($imageData);
+    }
+
+    // ── Rasmni "o'chirish" — base64 uchun hech narsa qilish shart emas ───────
+    private function deleteCloudinaryImage(?string $imageUrl): void
+    {
+        // Base64 bazada saqlanadi — alohida o'chirish kerak emas
+        // Eski URL bo'lsa (local fayl) — o'chirib tashlaymiz
+        if ($imageUrl && str_contains($imageUrl, '/uploads/products/')) {
+            $path = public_path('uploads/products/' . basename($imageUrl));
+            if (file_exists($path)) @unlink($path);
         }
-        $name = Str::uuid() . '.' . $file->getClientOriginalExtension();
-        $file->move($dir, $name);
-        // To'liq URL qaytaramiz — frontend qaysi domendan bo'lmasin ishlaydi
-        return url('/uploads/products/' . $name);
     }
 }
