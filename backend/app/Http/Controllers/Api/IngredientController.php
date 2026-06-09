@@ -33,6 +33,31 @@ class IngredientController extends Controller
         ]);
 
         $ingredient = Ingredient::create($data);
+
+        // Boshlang'ich qoldiq bo'lsa — xarajat va harakatlar tarixi yozamiz
+        $qty  = floatval($data['quantity'] ?? 0);
+        $cost = floatval($data['cost_per_unit'] ?? 0);
+        if ($qty > 0) {
+            StockMovement::create([
+                'ingredient_id' => $ingredient->id,
+                'type'          => 'in',
+                'quantity'      => $qty,
+                'cost_per_unit' => $cost,
+                'reason'        => 'Boshlang\'ich qoldiq',
+                'user_id'       => $request->user()?->id,
+            ]);
+
+            if ($cost > 0) {
+                Expense::create([
+                    'type'          => 'stock_in',
+                    'amount'        => $qty * $cost,
+                    'note'          => "{$ingredient->name} {$qty} {$ingredient->unit} — boshlang'ich qoldiq",
+                    'user_id'       => $request->user()?->id,
+                    'ingredient_id' => $ingredient->id,
+                ]);
+            }
+        }
+
         return response()->json($ingredient, 201);
     }
 
