@@ -17,6 +17,31 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
   String? _error;
   bool _acting = false;
 
+  // Tarix filter: 0=Barchasi, 1=Bugun, 2=Hafta, 3=Oy
+  int _filterIndex = 0;
+  static const _filterLabels = ['Barchasi', 'Bugun', 'Hafta', 'Oy'];
+
+  List<dynamic> get _filteredHistory {
+    if (_filterIndex == 0) return _history;
+    final now = DateTime.now();
+    return _history.where((s) {
+      final raw = s['opened_at']?.toString() ?? '';
+      if (raw.isEmpty) return true;
+      try {
+        final dt = DateTime.parse(raw).toLocal();
+        if (_filterIndex == 1) {
+          return dt.year == now.year && dt.month == now.month && dt.day == now.day;
+        } else if (_filterIndex == 2) {
+          return now.difference(dt).inDays <= 7;
+        } else {
+          return dt.year == now.year && dt.month == now.month;
+        }
+      } catch (_) {
+        return true;
+      }
+    }).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -141,15 +166,51 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
           ),
 
           const SizedBox(height: 20),
-          const Text('Smena tarixi',
-              style: TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600)),
+
+          // ── Filter chips ───────────────────────────────────────────────
+          Row(
+            children: [
+              const Text('Smena tarixi',
+                  style: TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600)),
+              const Spacer(),
+              ..._filterLabels.asMap().entries.map((e) {
+                final active = _filterIndex == e.key;
+                return Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _filterIndex = e.key),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: active
+                            ? AppColors.primary.withOpacity(0.15)
+                            : AppColors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: active ? AppColors.primary : AppColors.border,
+                        ),
+                      ),
+                      child: Text(
+                        e.value,
+                        style: TextStyle(
+                          color: active ? AppColors.primary : AppColors.muted,
+                          fontSize: 11,
+                          fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
           const SizedBox(height: 8),
 
           // ── Tarix ─────────────────────────────────────────────────────
-          if (_history.isEmpty)
+          if (_filteredHistory.isEmpty)
             const Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
@@ -158,7 +219,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
               ),
             )
           else
-            ..._history
+            ..._filteredHistory
                 .cast<Map<String, dynamic>>()
                 .map((s) => _ShiftHistoryTile(shift: s)),
         ],

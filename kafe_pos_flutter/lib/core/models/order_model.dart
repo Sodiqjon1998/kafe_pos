@@ -87,6 +87,8 @@ class Order {
   final double total;
   final List<OrderItem> items;
   final TableModel? table;
+  final String? closedAt;   // ISO datetime — to'langan vaqt
+  final String? createdAt;
 
   const Order({
     required this.id,
@@ -103,6 +105,8 @@ class Order {
     this.total = 0,
     this.items = const [],
     this.table,
+    this.closedAt,
+    this.createdAt,
   });
 
   factory Order.fromJson(Map<String, dynamic> j) => Order(
@@ -124,6 +128,8 @@ class Order {
         table: j['table'] != null
             ? TableModel.fromJson(j['table'] as Map<String, dynamic>)
             : null,
+        closedAt: j['closed_at']?.toString(),
+        createdAt: j['created_at']?.toString(),
       );
 
   String get statusLabel {

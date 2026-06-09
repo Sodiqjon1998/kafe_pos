@@ -52,20 +52,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _fmtDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  /// Bugungi to'langan buyurtmalarni local vaqt bo'yicha filter qilish
-  /// (web app toDate() + toLocaleDateString('sv-SE') kabi)
-  List<Order> _todayPaid(List<Order> all) {
-    final today = _fmtDate(DateTime.now()); // 'yyyy-MM-dd' mahalliy vaqt
-    return all.where((o) {
-      if (o.status != 'paid') return false;
-      final rawDate = (o as dynamic).closedAt ?? ''; // agar model kengaytirilsa
-      // Hozircha orderNumber yoki order_id bo'yicha emas, closed_at bo'yicha
-      // Order model da closedAt yo'q — shuning uchun effectiveTotal > 0 va today filter
-      // Backend dan kelgan paid orders to'g'ri sanaga ega deb hisoblaymiz
-      return true; // Barcha paid — keyinchalik closedAt qo'shiladi
-    }).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     final ordersP = context.watch<OrdersProvider>();
@@ -74,8 +60,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final active  = orders.where((o) =>
         o.status != 'paid' && o.status != 'cancelled').toList();
 
-    // Bugungi to'langan buyurtmalar — allOrders dan paid filter
-    final todayPaid = all.where((o) => o.status == 'paid').toList();
+    // Bugungi to'langan buyurtmalar — closed_at sana bo'yicha filter
+    final today = _fmtDate(DateTime.now());
+    final todayPaid = all.where((o) {
+      if (o.status != 'paid') return false;
+      // closed_at mavjud bo'lsa sana bo'yicha filter
+      if (o.closedAt != null && o.closedAt!.isNotEmpty) {
+        return o.closedAt!.startsWith(today);
+      }
+      // closed_at yo'q bo'lsa created_at ga qaramiz
+      if (o.createdAt != null && o.createdAt!.isNotEmpty) {
+        return o.createdAt!.startsWith(today);
+      }
+      return false;
+    }).toList();
     final todayRevenue = todayPaid.fold(0.0, (s, o) => s + o.effectiveTotal);
     final todayCount   = todayPaid.length;
 

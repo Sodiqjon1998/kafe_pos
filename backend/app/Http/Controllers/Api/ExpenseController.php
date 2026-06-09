@@ -15,8 +15,8 @@ class ExpenseController extends Controller
         $query = Expense::with('user:id,name', 'ingredient:id,name')
             ->latest();
 
-        if ($request->from) $query->whereRaw("DATE(CONVERT_TZ(created_at, '+00:00', '+05:00')) >= ?", [$request->from]);
-        if ($request->to)   $query->whereRaw("DATE(CONVERT_TZ(created_at, '+00:00', '+05:00')) <= ?", [$request->to]);
+        if ($request->from) $query->whereDate('created_at', '>=', $request->from);
+        if ($request->to)   $query->whereDate('created_at', '<=', $request->to);
         if ($request->type) $query->where('type', $request->type);
 
         return response()->json($query->limit(200)->get());
@@ -68,14 +68,14 @@ class ExpenseController extends Controller
 
         // Xarajat
         $expenseQuery = DB::table('expenses');
-        if ($from) $expenseQuery->whereRaw("DATE(CONVERT_TZ(created_at, '+00:00', ?)) >= ?", [$tz, $from]);
-        if ($to)   $expenseQuery->whereRaw("DATE(CONVERT_TZ(created_at, '+00:00', ?)) <= ?", [$tz, $to]);
+        if ($from) $expenseQuery->whereDate('created_at', '>=', $from);
+        if ($to)   $expenseQuery->whereDate('created_at', '<=', $to);
         $totalExpense = $expenseQuery->sum('amount');
 
         // Tur bo'yicha xarajat
         $byType = DB::table('expenses')
-            ->when($from, fn($q) => $q->whereRaw("DATE(CONVERT_TZ(created_at, '+00:00', '+05:00')) >= ?", [$from]))
-            ->when($to,   fn($q) => $q->whereRaw("DATE(CONVERT_TZ(created_at, '+00:00', '+05:00')) <= ?", [$to]))
+            ->when($from, fn($q) => $q->whereDate('created_at', '>=', $from))
+            ->when($to,   fn($q) => $q->whereDate('created_at', '<=', $to))
             ->select('type', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
             ->groupBy('type')
             ->get();

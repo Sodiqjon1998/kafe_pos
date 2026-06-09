@@ -15,7 +15,7 @@ class WaiterHome extends StatefulWidget {
 }
 
 class _WaiterHomeState extends State<WaiterHome>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   TabController? _tabCtrl;
   int _hallCount = 0;
   Timer? _refreshTimer;
@@ -35,6 +35,7 @@ class _WaiterHomeState extends State<WaiterHome>
     if (halls.isNotEmpty && mounted) {
       setState(() {
         _hallCount = halls.length;
+        _tabCtrl?.dispose();
         _tabCtrl = TabController(length: _hallCount, vsync: this);
       });
     }
@@ -121,7 +122,7 @@ class _WaiterHomeState extends State<WaiterHome>
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+          padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
           child: Row(
             children: [
               // ── Logo ────────────────────────────────────────────────────
@@ -188,13 +189,13 @@ class _WaiterHomeState extends State<WaiterHome>
                 ),
               ),
 
-              // ── Stats ────────────────────────────────────────────────────
-              _buildStatBadge('$free', "Bo'sh", AppColors.success),
-              const SizedBox(width: 5),
-              _buildStatBadge('$occ', 'Band', AppColors.warning),
+              // ── Stats (kompakt) ──────────────────────────────────────────
+              _buildStatChip('$free', AppColors.success),
+              const SizedBox(width: 4),
+              _buildStatChip('$occ', AppColors.warning),
               if (bill > 0) ...[
-                const SizedBox(width: 5),
-                _buildStatBadge('$bill', 'Hisob', AppColors.info),
+                const SizedBox(width: 4),
+                _buildStatChip('$bill', AppColors.info),
               ],
               const SizedBox(width: 4),
 
@@ -267,21 +268,44 @@ class _WaiterHomeState extends State<WaiterHome>
     );
   }
 
+  // Kichik son chip — faqat raqam, label yo'q
+  Widget _buildStatChip(String count, Color color) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Text(
+        count,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: color,
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+          height: 1,
+        ),
+      ),
+    );
+  }
+
   Widget _buildIconBtn(IconData icon, Color color, VoidCallback onTap,
       {String? tooltip}) {
     return Tooltip(
       message: tooltip ?? '',
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(9),
         onTap: onTap,
         child: Container(
-          width: 36,
-          height: 36,
+          width: 34,
+          height: 34,
           decoration: BoxDecoration(
             color: color.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(9),
           ),
-          child: Icon(icon, color: color, size: 18),
+          child: Icon(icon, color: color, size: 17),
         ),
       ),
     );

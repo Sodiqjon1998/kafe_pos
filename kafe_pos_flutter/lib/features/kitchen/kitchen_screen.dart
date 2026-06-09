@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../core/api/api_client.dart';
+import '../../core/config/app_config.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/models/order_model.dart';
+import '../../core/providers/auth_provider.dart';
 
 class KitchenScreen extends StatefulWidget {
   const KitchenScreen({super.key});
@@ -38,6 +42,41 @@ class _KitchenScreenState extends State<KitchenScreen> {
     _timer?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  Future<void> _logout() async {
+    // Tasdiqlash dialogi
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E28),
+        title: const Text('Chiqish', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Oshpaz ekranidan chiqmoqchimisiz?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Bekor', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Chiqish',
+                style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    // Kitchen APK bo'lsa settings ga, aks holda logout
+    if (AppConfig.isKitchenMode) {
+      context.go('/settings');
+    } else {
+      await context.read<AuthProvider>().logout();
+      if (mounted) context.go('/login');
+    }
   }
 
   Future<void> _load() async {
@@ -141,7 +180,7 @@ class _KitchenScreenState extends State<KitchenScreen> {
         '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: const BoxDecoration(
         color: Color(0xFF131318),
         border: Border(
@@ -150,63 +189,108 @@ class _KitchenScreenState extends State<KitchenScreen> {
       ),
       child: Row(
         children: [
-          // Logo + Sarlavha
+          // Logo
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: AppColors.warning.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                   color: AppColors.warning.withOpacity(0.4), width: 1.5),
             ),
             child: const Icon(Icons.soup_kitchen,
-                color: AppColors.warning, size: 22),
+                color: AppColors.warning, size: 20),
           ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'OSHPAZ EKRANI',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              Text(
-                'Yangilandi: $time',
-                style: const TextStyle(
-                    color: Color(0xFF666680), fontSize: 11),
-              ),
-            ],
-          ),
-          const Spacer(),
+          const SizedBox(width: 12),
 
-          // Statistika
-          _buildCountBadge('Yangi', sent, AppColors.danger),
+          // Sarlavha + vaqt — Expanded bilan qolgan joyni oladi
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'OSHPAZ EKRANI',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                Text(
+                  'Yangilandi: $time',
+                  style: const TextStyle(
+                      color: Color(0xFF666680), fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+
+          // Kompakt raqamli badgelar (faqat son)
+          _buildMiniCountBadge(sent, AppColors.danger),
+          const SizedBox(width: 6),
+          _buildMiniCountBadge(cooking, AppColors.warning),
+          const SizedBox(width: 6),
+          _buildMiniCountBadge(ready, AppColors.success),
           const SizedBox(width: 8),
-          _buildCountBadge('Tayyorlanmoqda', cooking, AppColors.warning),
-          const SizedBox(width: 8),
-          _buildCountBadge('Tayyor', ready, AppColors.success),
-          const SizedBox(width: 16),
 
           // Refresh
           GestureDetector(
             onTap: _load,
             child: Container(
-              padding: const EdgeInsets.all(10),
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: const Color(0xFF1E1E28),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: const Color(0xFF2A2A35)),
               ),
-              child: const Icon(Icons.refresh, color: Colors.white70, size: 20),
+              child: const Icon(Icons.refresh, color: Colors.white70, size: 18),
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // Logout
+          GestureDetector(
+            onTap: _logout,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.danger.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.danger.withOpacity(0.3)),
+              ),
+              child: const Icon(Icons.logout_rounded,
+                  color: AppColors.danger, size: 18),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Faqat son ko'rsatuvchi kichik badge
+  Widget _buildMiniCountBadge(int count, Color color) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 34),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.35), width: 1.5),
+      ),
+      child: Text(
+        '$count',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: color,
+          fontSize: 17,
+          fontWeight: FontWeight.w900,
+          height: 1,
+        ),
       ),
     );
   }
