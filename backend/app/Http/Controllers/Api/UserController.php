@@ -19,6 +19,14 @@ class UserController extends Controller
         );
     }
 
+    // GET /api/users/{id}
+    public function show(User $user)
+    {
+        return response()->json(
+            $user->only(['id', 'name', 'email', 'pin', 'role', 'is_active', 'created_at'])
+        );
+    }
+
     // POST /api/users
     public function store(Request $request)
     {
