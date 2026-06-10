@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Expense;
 use App\Models\SalaryPayment;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SalaryController extends Controller
 {
@@ -82,8 +85,21 @@ class SalaryController extends Controller
 
         $data['paid_by'] = $request->user()->id;
 
-        $payment = SalaryPayment::create($data);
-        $payment->load('paidByUser:id,name', 'user:id,name');
+        $payment = DB::transaction(function () use ($data, $request) {
+            $payment = SalaryPayment::create($data);
+            $payment->load('paidByUser:id,name', 'user:id,name');
+
+            // Xarajatlar jadvaliga avtomatik yozish
+            $typeLabel = ['monthly' => 'Oylik maosh', 'advance' => 'Avans', 'bonus' => 'Bonus'][$data['type']] ?? 'Maosh';
+            Expense::create([
+                'type'    => 'salary',
+                'amount'  => $data['amount'],
+                'note'    => "{$payment->user->name} — {$typeLabel} ({$data['month']})" . ($data['note'] ? ": {$data['note']}" : ''),
+                'user_id' => $request->user()->id,
+            ]);
+
+            return $payment;
+        });
 
         return response()->json($payment, 201);
     }
@@ -94,6 +110,8 @@ class SalaryController extends Controller
      */
     public function destroy(SalaryPayment $salaryPayment)
     {
+        // Tegishli expense yozuvini ham o'chirish
+        // Note orqali mos keluvchi expense ni topamiz
         $salaryPayment->delete();
         return response()->json(null, 204);
     }
