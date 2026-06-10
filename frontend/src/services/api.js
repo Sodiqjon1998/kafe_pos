@@ -129,3 +129,13 @@ export const usersApi = {
   update:  (id, d)  => api.put(`/users/${id}`, d),
   delete:  (id)     => api.delete(`/users/${id}`),
 }
+
+// ── Maosh ─────────────────────────────────────────────────────────────────────
+export const salaryApi = {
+  getAll:       (month)       => api.get('/salaries', { params: { month } }),
+  summary:      (from, to)    => api.get('/salaries/summary', { params: { from, to } }),
+  setSalary:    (id, amount)  => api.put(`/users/${id}/salary`, { monthly_salary: amount }),
+  getPayments:  (id, month)   => api.get(`/users/${id}/salary-payments`, { params: { month } }),
+  pay:          (data)        => api.post('/salary-payments', data),
+  deletePayment:(id)          => api.delete(`/salary-payments/${id}`),
+}

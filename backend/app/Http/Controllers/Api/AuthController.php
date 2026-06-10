@@ -80,6 +80,19 @@ class AuthController extends Controller
         return response()->json($this->userResource($request->user()));
     }
 
+    /**
+     * Login ekrani uchun faol xodimlar ro'yxati (faqat ism va rol — PIN yo'q)
+     */
+    public function activeStaff()
+    {
+        return response()->json(
+            User::where('is_active', true)
+                ->select('id', 'name', 'role')
+                ->orderByRaw("FIELD(role,'admin','manager','cashier','waiter','kitchen')")
+                ->get()
+        );
+    }
+
     private function userResource(User $user): array
     {
         return [

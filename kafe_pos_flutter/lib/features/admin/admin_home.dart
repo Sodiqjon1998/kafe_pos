@@ -11,6 +11,7 @@ import 'shifts_screen.dart';
 import 'sklad_screen.dart';
 import 'tables_admin_screen.dart';
 import 'users_screen.dart';
+import 'salary_screen.dart';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -30,7 +31,8 @@ class _AdminHomeState extends State<AdminHome> {
     _PageItem(icon: Icons.people_outline,         label: 'Xodimlar'),
     _PageItem(icon: Icons.inventory_2_outlined,   label: 'Sklad'),
     _PageItem(icon: Icons.payments_outlined,      label: 'Xarajatlar'),
-    _PageItem(icon: Icons.bar_chart,      label: 'Hisobotlar'),
+    _PageItem(icon: Icons.account_balance_wallet, label: 'Maosh'),
+    _PageItem(icon: Icons.bar_chart,              label: 'Hisobotlar'),
   ];
 
   // Bir marta yaratilgan sahifalar ro'yxati (lazy — faqat birinchi kirish paytida)
@@ -46,6 +48,7 @@ class _AdminHomeState extends State<AdminHome> {
         UsersScreen(),
         SkladScreen(),
         ExpensesScreen(),
+        SalaryScreen(),
         ReportsScreen(),
       ];
       return screens[index];

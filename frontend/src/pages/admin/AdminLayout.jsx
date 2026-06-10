@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { menuApi, tablesApi, usersApi, ordersApi, shiftApi, paymentsApi, stockApi, expenseApi } from '../../services/api'
+import SalaryPage from './SalaryPage'
 
 const C = {
   bg:      '#0F172A', surface: '#1E293B', card: '#263548',
@@ -26,6 +27,7 @@ const NAV = [
   { key: 'shifts',    label: 'Smenalar',        icon: CalendarClock },
   { key: 'stock',     label: 'Sklad',            icon: Package },
   { key: 'expenses',  label: 'Xarajatlar',       icon: Wallet },
+  { key: 'salary',    label: 'Maosh',            icon: DollarSign },
   { key: 'reports',   label: 'Hisobotlar',      icon: BarChart2 },
   { key: 'settings',  label: 'Sozlamalar',      icon: Settings },
 ]
@@ -133,7 +135,7 @@ export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const isMobile = useIsMobile()
 
-  const PAGES = { dashboard: Dashboard, orders: OrdersPage, menu: MenuPage, tables: TablesPage, staff: StaffPage, shifts: ShiftsPage, stock: StockPage, expenses: ExpensesPage, reports: ReportsPage, settings: SettingsPage }
+  const PAGES = { dashboard: Dashboard, orders: OrdersPage, menu: MenuPage, tables: TablesPage, staff: StaffPage, shifts: ShiftsPage, stock: StockPage, expenses: ExpensesPage, salary: SalaryPage, reports: ReportsPage, settings: SettingsPage }
   const Page = PAGES[page] || Dashboard
 
   function navigate(key) {

@@ -11,11 +11,13 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\IngredientController;
 use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\SalaryController;
 
 // Auth (ochiq)
 Route::prefix('auth')->group(function () {
-    Route::post('pin',   [AuthController::class, 'loginByPin']);
-    Route::post('login', [AuthController::class, 'loginByPassword']);
+    Route::post('pin',          [AuthController::class, 'loginByPin']);
+    Route::post('login',        [AuthController::class, 'loginByPassword']);
+    Route::get('active-staff',  [AuthController::class, 'activeStaff']);  // Login ekrani uchun
 });
 
 // Himoyalangan
@@ -89,6 +91,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('products/recipe-costs',                    [IngredientController::class, 'allRecipeCosts']);
     Route::get('products/{product}/recipe',                [IngredientController::class, 'getRecipe']);
     Route::post('products/{product}/recipe',               [IngredientController::class, 'saveRecipe']);
+
+    // Maosh
+    Route::get('salaries',                          [SalaryController::class, 'index']);
+    Route::get('salaries/summary',                  [SalaryController::class, 'summary']);
+    Route::put('users/{user}/salary',               [SalaryController::class, 'setSalary']);
+    Route::get('users/{user}/salary-payments',      [SalaryController::class, 'payments']);
+    Route::post('salary-payments',                  [SalaryController::class, 'store']);
+    Route::delete('salary-payments/{salaryPayment}',[SalaryController::class, 'destroy']);
 
     // Xarajatlar
     Route::get('expenses/summary',  [ExpenseController::class, 'summary']);
