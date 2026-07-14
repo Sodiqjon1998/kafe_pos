@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use App\Models\Hall;
+use App\Models\Ingredient;
 use App\Models\Product;
 use App\Models\Table;
 use App\Models\User;
@@ -125,5 +126,46 @@ class DatabaseSeeder extends Seeder
                 );
             }
         }
+
+        // ── Sklad ingredientlari ──────────────────────────────────────────────
+        $ingredients = [
+            // Go'sht mahsulotlar
+            ['name' => 'Mol go\'shtı',       'unit' => 'kg',   'quantity' => 15.0,  'min_quantity' => 3.0,  'cost_per_unit' => 85000],
+            ['name' => 'Qo\'y go\'shtı',     'unit' => 'kg',   'quantity' => 10.0,  'min_quantity' => 2.0,  'cost_per_unit' => 95000],
+            ['name' => 'Tovuq',              'unit' => 'kg',   'quantity' => 8.0,   'min_quantity' => 2.0,  'cost_per_unit' => 45000],
+            // Sabzavotlar
+            ['name' => 'Piyoz',              'unit' => 'kg',   'quantity' => 20.0,  'min_quantity' => 5.0,  'cost_per_unit' => 3000],
+            ['name' => 'Sabzi',              'unit' => 'kg',   'quantity' => 15.0,  'min_quantity' => 3.0,  'cost_per_unit' => 4000],
+            ['name' => 'Pomidor',            'unit' => 'kg',   'quantity' => 12.0,  'min_quantity' => 3.0,  'cost_per_unit' => 5000],
+            ['name' => 'Bodring',            'unit' => 'kg',   'quantity' => 6.0,   'min_quantity' => 2.0,  'cost_per_unit' => 6000],
+            ['name' => 'Kartoshka',          'unit' => 'kg',   'quantity' => 25.0,  'min_quantity' => 5.0,  'cost_per_unit' => 3500],
+            ['name' => 'Karam',              'unit' => 'kg',   'quantity' => 8.0,   'min_quantity' => 2.0,  'cost_per_unit' => 2500],
+            // Don mahsulotlar
+            ['name' => 'Guruch',             'unit' => 'kg',   'quantity' => 30.0,  'min_quantity' => 5.0,  'cost_per_unit' => 12000],
+            ['name' => 'Un',                 'unit' => 'kg',   'quantity' => 20.0,  'min_quantity' => 5.0,  'cost_per_unit' => 8000],
+            ['name' => 'Makkajo\'xori uni',  'unit' => 'kg',   'quantity' => 5.0,   'min_quantity' => 1.0,  'cost_per_unit' => 10000],
+            // Moyliq
+            ['name' => 'O\'simlik yog\'i',   'unit' => 'litr', 'quantity' => 8.0,   'min_quantity' => 2.0,  'cost_per_unit' => 22000],
+            ['name' => 'Sariyog\'',          'unit' => 'kg',   'quantity' => 3.0,   'min_quantity' => 0.5,  'cost_per_unit' => 75000],
+            // Ziravorlar
+            ['name' => 'Tuz',               'unit' => 'kg',   'quantity' => 5.0,   'min_quantity' => 1.0,  'cost_per_unit' => 2000],
+            ['name' => 'Qalampir',          'unit' => 'gr',   'quantity' => 500.0, 'min_quantity' => 100.0,'cost_per_unit' => 80],
+            ['name' => 'Zira',              'unit' => 'gr',   'quantity' => 300.0, 'min_quantity' => 50.0, 'cost_per_unit' => 120],
+            ['name' => 'Koriander',         'unit' => 'gr',   'quantity' => 200.0, 'min_quantity' => 50.0, 'cost_per_unit' => 100],
+            // Ichimliklar
+            ['name' => 'Choy (ko\'k)',       'unit' => 'gr',   'quantity' => 1000.0,'min_quantity' => 200.0,'cost_per_unit' => 150],
+            ['name' => 'Choy (qora)',        'unit' => 'gr',   'quantity' => 800.0, 'min_quantity' => 200.0,'cost_per_unit' => 100],
+            ['name' => 'Shakar',            'unit' => 'kg',   'quantity' => 10.0,  'min_quantity' => 2.0,  'cost_per_unit' => 9000],
+            ['name' => 'Limon',             'unit' => 'dona', 'quantity' => 30.0,  'min_quantity' => 10.0, 'cost_per_unit' => 3000],
+            // Boshqa
+            ['name' => 'Tuxum',             'unit' => 'dona', 'quantity' => 60.0,  'min_quantity' => 12.0, 'cost_per_unit' => 2000],
+            ['name' => 'Sut',               'unit' => 'litr', 'quantity' => 5.0,   'min_quantity' => 1.0,  'cost_per_unit' => 9000],
+            ['name' => 'Qatiq',             'unit' => 'litr', 'quantity' => 3.0,   'min_quantity' => 0.5,  'cost_per_unit' => 12000],
+        ];
+
+        foreach ($ingredients as $ing) {
+            Ingredient::firstOrCreate(['name' => $ing['name']], $ing);
+        }
     }
 }
+
